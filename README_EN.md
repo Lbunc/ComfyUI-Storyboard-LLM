@@ -12,6 +12,10 @@ A ComfyUI plugin that converts novel chapters into storyboard tables by calling 
 - Support saving storyboard as JSON file
 - Support custom prompt templates
 
+## Node Preview
+
+![Storyboard Generator Node](image/workflow.png)
+
 ## Installation
 
 1. Copy the `ComfyUI-Storyboard-LLM` folder to ComfyUI's `custom_nodes` directory
@@ -38,6 +42,15 @@ Edit the `settings.json` file:
 - `output_path`: Optional, JSON output path, leave empty to save in plugin directory
 
 ## Usage
+
+### Method 1: Use Preset Workflow (Recommended)
+
+1. Click the `Load` button in ComfyUI
+2. Select `workflows/Storyboard-Generator-Workflow(DeepSeek).json`
+3. Input your novel chapter text in the `Storyboard Generator (DeepSeek)` node
+4. Run the workflow
+
+### Method 2: Manual Setup
 
 1. Find the `Storyboard Generator (DeepSeek)` node under the `storyboard` category in ComfyUI
 2. Input your novel chapter text
@@ -67,9 +80,9 @@ JSON output format:
 ```json
 [
     {
-        "静态": "Character description + action + scene + lighting + composition",
-        "动态": "Character is doing something, environment changes accordingly",
-        "台词": "Character dialogue or inner monologue"
+        "static": "Character description + action + scene + lighting + composition",
+        "dynamic": "Character is doing something, environment changes accordingly",
+        "dialogue": "Character dialogue or inner monologue"
     }
 ]
 ```
@@ -82,4 +95,4 @@ MIT License
 
 - Make sure you have obtained a DeepSeek API key before use
 - API calls incur costs, please control usage frequency appropriately
-- It is recommended to process long texts in segments
+- It is recommended to input one chapter at a time (less than 3000 Chinese characters), longer texts may cause response truncation

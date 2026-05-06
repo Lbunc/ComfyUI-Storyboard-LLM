@@ -1,4 +1,4 @@
-# Storyboard Generator (DeepSeek)
+# ComfyUI-Storyboard-LLM
 
 一个将小说章节转化为分镜表的 ComfyUI 插件，通过调用 DeepSeek API 生成静态图像提示词、动态视频提示词和台词。
 
@@ -12,9 +12,13 @@
 - 支持保存分镜表为 JSON 文件
 - 支持自定义提示词模板
 
+## 节点预览
+
+![Storyboard Generator Node](image/workflow.png)
+
 ## 安装方法
 
-1. 将 `storyboard_llm` 文件夹复制到 ComfyUI 的 `custom_nodes` 目录
+1. 将 `ComfyUI-Storyboard-LLM` 文件夹复制到 ComfyUI 的 `custom_nodes` 目录
 2. 安装依赖（如果尚未安装）：
 ```bash
 pip install -r requirements.txt
@@ -38,6 +42,15 @@ pip install -r requirements.txt
 - `output_path`: 可选，JSON 文件保存路径，留空则保存到插件目录
 
 ## 使用方法
+
+### 方法一：使用预设工作流（推荐）
+
+1. 在 ComfyUI 中点击 `Load` 按钮
+2. 选择 `workflows/Storyboard-Generator-Workflow(DeepSeek).json`
+3. 在 `Storyboard Generator (DeepSeek)` 节点中输入小说章节文本
+4. 运行工作流
+
+### 方法二：手动搭建
 
 1. 在 ComfyUI 中找到 `storyboard` 类别下的 `Storyboard Generator (DeepSeek)` 节点
 2. 输入小说章节文本
@@ -82,4 +95,4 @@ MIT License
 
 - 使用前请确保已获取 DeepSeek API 密钥
 - API 调用会产生费用，请合理控制使用频率
-- 建议对长文本进行分段处理
+- 建议每次输入一章节（中文字符为3000以下），过长文本可能导致响应截断
