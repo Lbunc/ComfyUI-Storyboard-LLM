@@ -1,6 +1,6 @@
 [project]
 name = "ComfyUI-Storyboard-LLM"
-version = "v1.0.0"               
+version = "v1.0.1"               
 description = "将小说章节转换为影视分镜脚本的ComfyUI插件，支持DeepSeek API生成静态分镜提示词、动态视频提示词和台词"
 license = {text = "MIT License"} 
 
