@@ -1,5 +1,8 @@
 # ComfyUI-Storyboard-LLM
 
+🌐 **语言切换 / Language Switch**  
+- [简体中文](README.md) | [English](README_EN.md)
+
 A ComfyUI plugin that converts novel chapters into storyboard tables by calling DeepSeek API. Each storyboard shot contains static image prompts, dynamic video prompts, and dialogues.
 
 ## Features
@@ -18,7 +21,17 @@ A ComfyUI plugin that converts novel chapters into storyboard tables by calling 
 
 ## Installation
 
-1. Copy the `ComfyUI-Storyboard-LLM` folder to ComfyUI's `custom_nodes` directory
+### Method 1: ComfyUI Manager Installation (Recommended)
+1. Open ComfyUI Manager
+2. Search for `Storyboard-LLM`
+3. Click the `Install` button
+4. Restart ComfyUI
+
+### Method 2: Manual Installation via Git
+1. Clone the repository to `custom_nodes` directory:
+```bash
+git clone https://github.com/Lbunc/ComfyUI-Storyboard-LLM.git
+```
 2. Install dependencies (if not already installed):
 ```bash
 pip install -r requirements.txt
@@ -27,7 +40,15 @@ pip install -r requirements.txt
 
 ## Configuration
 
-Edit the `settings.json` file:
+### Method 1: Configure via Web Settings (Recommended)
+1. Open ComfyUI WebUI
+2. Click the `Settings` button
+3. Click on `StoryBoard` plugin settings
+4. Enter your DeepSeek API key
+
+### Method 2: Edit `settings.json` file:
+- Open `custom_nodes/ComfyUI-Storyboard-LLM/settings.json`
+- Edit the following content:
 
 ```json
 {
@@ -52,7 +73,7 @@ Edit the `settings.json` file:
 
 ### Method 2: Manual Setup
 
-1. Find the `Storyboard Generator (DeepSeek)` node under the `storyboard` category in ComfyUI
+1. Find the `Storyboard Generator (DeepSeek)` node under the `StoryBoard` category in ComfyUI
 2. Input your novel chapter text
 3. Set whether to save JSON file
 4. (Optional) Input custom prompt template
@@ -80,16 +101,12 @@ JSON output format:
 ```json
 [
     {
-        "static": "Character description + action + scene + lighting + composition",
-        "dynamic": "Character is doing something, environment changes accordingly",
-        "dialogue": "Character dialogue or inner monologue"
+        "静态": "Character description + action + scene + lighting + composition",
+        "动态": "Character is doing something, environment changes accordingly",
+        "台词": "Character dialogue or inner monologue"
     }
 ]
 ```
-
-## License
-
-MIT License
 
 ## Notes
 
@@ -97,3 +114,7 @@ MIT License
 - API calls incur costs, please control usage frequency appropriately
 - It is recommended to input one chapter at a time (less than 3000 Chinese characters), longer texts may cause response truncation
 - **Recommended to use `deepseek-v4-flash` model** for faster response speed, suitable for daily use; `deepseek-v4-pro` model has higher quality but slower response and may return incomplete JSON responses
+
+## License
+
+MIT License

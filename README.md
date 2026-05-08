@@ -1,5 +1,8 @@
 # ComfyUI-Storyboard-LLM
 
+🌐 **语言切换 / Language Switch**  
+- [简体中文](README.md) | [English](README_EN.md)
+
 一个将小说章节转化为分镜表的 ComfyUI 插件，通过调用 DeepSeek API 生成静态图像提示词、动态视频提示词和台词。
 
 ## 功能特点
@@ -18,7 +21,17 @@
 
 ## 安装方法
 
-1. 将 `ComfyUI-Storyboard-LLM` 文件夹复制到 ComfyUI 的 `custom_nodes` 目录
+### 方法一：ComfyUI Manager 安装（推荐）
+1. 打开 ComfyUI Manager 插件管理器
+2. 搜索 `Storyboard-LLM`
+3. 点击 `Install` 按钮安装插件
+4. 重启 ComfyUI
+
+### 方法二：通过 Git 手动安装
+1. 克隆仓库到 `custom_nodes` 目录：
+```bash
+git clone https://github.com/Lbunc/ComfyUI-Storyboard-LLM.git
+```
 2. 安装依赖（如果尚未安装）：
 ```bash
 pip install -r requirements.txt
@@ -27,8 +40,16 @@ pip install -r requirements.txt
 
 ## 配置方法
 
-编辑 `settings.json` 文件：
+### 方法一：进入WEB设置页面配置
+1. 打开 ComfyUI WebUI
+2. 点击 `Settings` 按钮
+3. 点击 `Storyboard-LLM` 插件
+4. 输入你的 DeepSeek API 密钥
 
+### 方法二：编辑 `settings.json` 文件：
+- 打开 `custom_nodes/ComfyUI-Storyboard-LLM/settings.json` 文件
+- 编辑以下内容：
+  
 ```json
 {
   "api_key": "你的 DeepSeek API 密钥",
@@ -87,13 +108,12 @@ JSON 文件输出格式：
 ]
 ```
 
-## 许可证
-
-MIT License
-
 ## 注意事项
 
 - 使用前请确保已获取 DeepSeek API 密钥
 - API 调用会产生费用，请合理控制使用频率
-- 建议每次输入一章节（中文字符为3000以下），过长文本可能导致响应截断
+- 建议每次输入一章节（中文字符约3000个以下），过长文本可能导致响应截断
 - **推荐使用 `deepseek-v4-flash` 模型**，响应速度更快，适合日常使用；`deepseek-v4-pro` 模型虽然质量更高但响应较慢，且可能返回不完整的 JSON 响应
+## 许可证
+
+MIT License
