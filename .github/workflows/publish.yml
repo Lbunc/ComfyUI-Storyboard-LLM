@@ -1,0 +1,23 @@
+name: Publish to Comfy registry
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "pyproject.toml"
+      - "**/__init__.py"
+      - "**/*.py"
+
+jobs:
+  publish-node:
+    name: Publish Custom Node to registry
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Publish Node
+        uses: Comfy-Org/publish-node-action@main
+        with:
+          registry_access_token: ${{ secrets.pat-161c5a82-16a9-435c-ae2e-31484346e0fd }}
