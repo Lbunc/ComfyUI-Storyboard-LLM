@@ -1,5 +1,5 @@
 {
-  "api_key": "",
+  "api_key": "", // 你的API密钥
   "base_url": "https://api.deepseek.com",
   "output_path": ""
 }

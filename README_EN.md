@@ -96,3 +96,4 @@ MIT License
 - Make sure you have obtained a DeepSeek API key before use
 - API calls incur costs, please control usage frequency appropriately
 - It is recommended to input one chapter at a time (less than 3000 Chinese characters), longer texts may cause response truncation
+- **Recommended to use `deepseek-v4-flash` model** for faster response speed, suitable for daily use; `deepseek-v4-pro` model has higher quality but slower response and may return incomplete JSON responses

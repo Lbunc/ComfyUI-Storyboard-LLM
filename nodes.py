@@ -1,29 +1,24 @@
 # -*- coding: utf-8 -*-
 """
-ComfyUI-Storyboard-LLM 插件 - 核心节点逻辑
+ComfyUI-Storyboard-LLM 插件 - 核心节点类
 
-本插件用于将小说章节转化为分镜表,通过调用 DeepSeek API 生成:
-- 静态图像提示词(适用于图像生成)
-- 动态视频提示词(适用于视频生成)
-- 台词文本
-
-使用说明:
-1. 在 settings.json 中配置 API 密钥
-2. 在 ComfyUI 中找到 storyboard 类别下的节点
-3. 输入小说章节文本,运行工作流
+本文件实现了:
+1. Storyboard 节点的 UI 定义
+2. 与 DeepSeek API 的交互逻辑
+3. 响应解析和输出处理
 """
 
-# 导入需要的模块
-import json          # 用于处理 JSON 数据
-import re           # 用于正则表达式匹配
-import requests     # 用于发送 HTTP 请求
-from typing import Tuple  # 用于类型提示
+# 导入标准库模块
+import json          # 用于 JSON 数据的解析和序列化
+import re           # 用于正则表达式处理
+import requests     # 用于 HTTP 请求
+from typing import Tuple  # 用于类型注解
 from pathlib import Path  # 用于文件路径操作
 from datetime import datetime  # 用于生成时间戳
 
 # 导入自定义模块
-from .config import load_settings, save_settings  # 配置管理
-from .prompt_template import format_prompt  # 提示词模板处理
+from .config import load_settings       # 加载配置文件
+from .prompt_template import format_prompt  # 格式化提示词模板
 
 
 class StoryboardNode:
@@ -59,14 +54,13 @@ class StoryboardNode:
         }
 
     # 定义节点的输出类型和名称
-    RETURN_TYPES = ("STRING", "STRING", "STRING")  # 三个输出端口
-    RETURN_NAMES = ("image_prompts", "video_prompts", "dialogues")  # 输出端口名称
-    FUNCTION = "generate_storyboard"  # 执行的核心方法名称
-    CATEGORY = "storyboard"  # 节点在 ComfyUI 中的分类
+    RETURN_TYPES = ("STRING", "STRING", "STRING")  # 输出类型: 三个字符串
+    RETURN_NAMES = ("image_prompts", "video_prompts", "dialogues")  # 输出名称
+    FUNCTION = "generate_storyboard"  # 节点执行的方法名
+    CATEGORY = "storyboard"  # 节点在 ComfyUI 菜单中的分类
     OUTPUT_NODE = True  # 标记为输出节点
 
-
-    def generate_storyboard(self, chapter_text: str, save_json: bool = True, custom_prompt: str = "", model: str = "deepseek-v4-flash") -> Tuple[str, str, str]:
+    def generate_storyboard(self, chapter_text, save_json=True, custom_prompt="", model="deepseek-v4-flash"):
         """
         核心方法:生成故事板
         
@@ -77,7 +71,7 @@ class StoryboardNode:
             model: str - 使用的模型名称
         
         返回值:
-            Tuple[str, str, str] - (图像提示词, 视频提示词, 台词)
+            tuple - (图像提示词, 视频提示词, 台词)
         """
         # 1. 加载配置(API 密钥,基础 URL,输出路径)
         settings = load_settings()
@@ -87,7 +81,7 @@ class StoryboardNode:
 
         # 2. 验证 API 密钥是否已配置
         if not api_key:
-            raise ValueError("请先在 settings.json 中配置DeepSeek API密钥!")
+            raise ValueError("请先在 settings.json 中配置 DeepSeek API 密钥!")
 
         # 3. 构建提示词(优先使用自定义模板,否则使用默认模板)
         if custom_prompt.strip():
@@ -99,37 +93,32 @@ class StoryboardNode:
 
         # 4. 设置 HTTP 请求头(包含认证信息)
         headers = {
-            "Content-Type": "application/json",  # 告诉服务器发送的是 JSON 格式
-            "Authorization": f"Bearer {api_key}"  # API 认证令牌
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + api_key
         }
 
         # 5. 构建 API 请求参数
         payload = {
-            "model": model,  # 使用的模型
+            "model": model,
             "messages": [
-                # 系统消息:定义模型的角色
                 {"role": "system", "content": "你是一位资深影视分镜师,擅长将文学性小说转化为可执行的视觉分镜脚本.请严格按照用户指定的格式输出JSON数据."},
-                # 用户消息:包含实际的提示词
                 {"role": "user", "content": prompt}
             ],
-            "temperature": 0.7,  # 创意程度(0-2,越高越随机)
-            "max_tokens": 8192,  # 最大生成 token 数(8K输出)
-            "response_format": {"type": "json_object"}  # 强制输出 JSON 格式
+            "temperature": 0.7,
+            "max_tokens": 8192,
+            "response_format": {"type": "json_object"}
         }
 
         # 6. 发送 API 请求并处理响应
         try:
-            # 发送 POST 请求到 DeepSeek API
             response = requests.post(
-                f"{base_url}/chat/completions",  # API 端点
-                headers=headers,  # 请求头
-                json=payload,     # 请求体(JSON 格式)
-                timeout=120       # 超时时间(2分钟)
+                base_url + "/chat/completions",
+                headers=headers,
+                json=payload,
+                timeout=120
             )
             
-            # 如果状态码不是200,根据状态码提供具体的错误信息
             if response.status_code != 200:
-                # 定义常见状态码对应的错误说明
                 status_messages = {
                     400: "请求参数错误,请检查输入格式",
                     401: "未授权访问,请检查API密钥是否正确",
@@ -141,165 +130,243 @@ class StoryboardNode:
                     503: "服务暂时不可用,请稍后重试"
                 }
                 
-                # 获取状态码对应的默认错误信息
                 status_msg = status_messages.get(response.status_code, "未知错误")
                 
                 try:
                     error_data = response.json()
                     error_msg = error_data.get("error", {}).get("message", str(error_data))
-                except:
+                except Exception:
                     error_msg = response.text[:500]
                 
-                # 组合错误信息
-                raise Exception(f"API请求失败 ({response.status_code} - {status_msg}): {error_msg}")
+                raise Exception("API请求失败 (" + str(response.status_code) + " - " + status_msg + "): " + error_msg)
             
-            # 正常响应时打印成功信息
             print("API请求成功")
             
-            # 解析 JSON 响应
-            result = response.json()
+            # 解析 API 响应
+            response_data = response.json()  # 将响应转为 JSON 对象
+            model_response = response_data["choices"][0]["message"]["content"]  # 提取模型返回的内容
+            storyboard_data = self._parse_response(model_response)  # 解析分镜数据
             
-            # 检查响应结构是否正确
-            if not result.get("choices") or len(result["choices"]) == 0:
-                raise Exception(f"API响应中没有找到choices字段: {str(result)}")
+            # 如果需要保存 JSON 文件
+            if save_json:
+                self.save_json_file(storyboard_data, output_path)
             
-            # 提取模型返回的内容
-            llm_response = result["choices"][0]["message"].get("content", "")
+            # 提取输出并返回
+            return self._extract_outputs(storyboard_data, model)
             
-            # 检查响应内容是否为空
-            if not llm_response or not llm_response.strip():
-                raise Exception(f"API返回内容为空!\n完整响应: {str(result)}")
-        
+        except requests.exceptions.Timeout:
+            # 请求超时异常
+            raise Exception("API请求超时,请稍后重试或检查网络连接")
         except requests.exceptions.RequestException as e:
-            # 处理网络请求异常(如连接失败,超时等)
-            raise Exception(f"网络请求失败: {str(e)}\n请检查网络连接或API地址是否正确")
-        except (KeyError, IndexError) as e:
-            # 处理响应解析异常(响应格式不符合预期)
-            raise Exception(f"解析API响应失败: {str(e)}\n请检查API密钥是否正确")
+            # 网络请求异常（如连接失败、DNS解析失败等）
+            raise Exception("网络请求错误: " + str(e))
+        except Exception as e:
+            # 其他未知异常
+            raise Exception("处理请求时出错: " + str(e))
 
-        # 7. 解析模型返回的 JSON 数据
-        storyboard_data = self.parse_json_response(llm_response)
-
-        # 8. 保存 JSON 文件(如果启用)
-        if save_json:
-            self.save_json_file(storyboard_data, output_path)
-
-        # 9. 提取三个输出:图像提示词,视频提示词,台词
-        image_prompts, video_prompts, dialogues = self.extract_outputs(storyboard_data)
-
-        # 10. 返回结果
-        return (image_prompts, video_prompts, dialogues)
-
-
-    def parse_json_response(self, response_text: str) -> list:
+    def _parse_response(self, response_text):
         """
         解析模型返回的 JSON 响应
         
         参数:
-            response_text: str - 模型返回的原始文本
+            response_text: str - 模型返回的原始响应文本
         
         返回值:
-            list - 解析后的分镜数据列表
+            list/dict - 解析后的分镜数据
+        
+        说明:
+            该方法采用多层容错机制来处理模型可能返回的不规范响应:
+            1. 首先尝试直接解析
+            2. 如果失败,尝试提取 JSON 数组部分
+            3. 移除可能存在的 markdown 代码块标记
+            4. 尝试修复不完整的 JSON
         """
         try:
-            # 先尝试直接解析(因为启用了 JSON Output)
+            # 第一层尝试: 直接解析 JSON
             return json.loads(response_text)
         except json.JSONDecodeError:
-            # 如果直接解析失败,尝试提取完整的 JSON 数组
-            # 找到第一个 [ 和最后一个 ] 的位置,提取完整的数组内容
-            start_idx = response_text.find('[')
-            end_idx = response_text.rfind(']')
+            # 第二层尝试: 提取 JSON 数组部分
+            start_idx = response_text.find('[')  # 找到数组开始位置
+            end_idx = response_text.rfind(']')   # 找到数组结束位置
             
             if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
-                json_str = response_text[start_idx:end_idx+1]
+                json_str = response_text[start_idx:end_idx+1]  # 提取数组部分
             else:
-                json_str = response_text
+                json_str = response_text  # 如果找不到数组标记,使用原文本
             
-            # 清理可能的 markdown 代码块标记
+            # 移除 markdown 代码块标记 (如 ```json 和 ```)
             cleaned = re.sub(r'^```json\s*|\s*```$', '', json_str, flags=re.IGNORECASE)
             
             try:
+                # 第三层尝试: 解析清理后的 JSON
                 return json.loads(cleaned)
-            except json.JSONDecodeError as e:
-                # 如果还是解析失败,抛出详细错误信息
-                raise Exception(f"解析JSON响应失败: {str(e)}\n响应内容: {response_text[:500]}")
+            except json.JSONDecodeError:
+                # 第四层尝试: 修复不完整的 JSON 后再解析
+                fixed_json = self._fix_incomplete_json(cleaned)
+                try:
+                    return json.loads(fixed_json)
+                except json.JSONDecodeError as e:
+                    # 所有尝试都失败,抛出异常
+                    raise Exception("解析JSON响应失败: " + str(e) + "\n响应内容: " + response_text[:500])
+    
+    def _fix_incomplete_json(self, json_str):
+        """
+        尝试修复不完整的 JSON 字符串
+        
+        参数:
+            json_str: str - 待修复的 JSON 字符串
+        
+        返回值:
+            str - 修复后的 JSON 字符串
+        
+        说明:
+            该方法主要处理两种常见的 JSON 不完整情况:
+            1. 字符串引号未闭合 (模型返回被截断)
+            2. 数组缺少闭合括号 ]
+        """
+        # 修复一: 处理未闭合的字符串引号
+        # 统计引号数量，如果是奇数，说明有未闭合的字符串
+        quote_count = json_str.count('"')
+        if quote_count % 2 != 0:
+            # 找到最后一个未闭合的引号位置
+            last_quote_idx = json_str.rfind('"')
+            if last_quote_idx != -1:
+                # 检查引号后面的内容，判断是否需要添加闭合引号
+                remaining = json_str[last_quote_idx+1:].strip()
+                # 如果后面没有内容或者只有数组/对象的闭合符，则需要添加引号
+                if not remaining or remaining in [']', '}']:
+                    json_str = json_str[:last_quote_idx+1] + '"' + json_str[last_quote_idx+1:]
+        
+        # 修复二: 确保 JSON 数组以 ] 结尾
+        stripped = json_str.strip()
+        if not stripped.endswith(']'):
+            json_str += ']'
+        
+        return json_str
 
-
-    def save_json_file(self, data: list, output_path: str):
+    def save_json_file(self, data, output_path):
         """
         保存分镜数据到 JSON 文件
         
         参数:
-            data: list - 分镜数据列表
-            output_path: str - 输出路径(空则保存到插件目录)
-        """
-        if output_path:
-            # 使用用户指定的路径
-            output_file = Path(output_path) / f"storyboard_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        else:
-            # 默认保存到插件目录,文件名包含时间戳
-            output_file = Path(__file__).parent / f"storyboard_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-
-        # 确保目录存在
-        output_file.parent.mkdir(parents=True, exist_ok=True)
+            data: list/dict - 分镜数据
+            output_path: str - 输出目录路径(可为空)
         
-        # 写入文件(使用 UTF-8 编码支持中文)
-        with open(output_file, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-
-
-    def extract_outputs(self, data: list) -> Tuple[str, str, str]:
+        说明:
+            如果未指定输出路径,则保存到插件所在目录
+            文件名格式: storyboard_YYYYMMDD_HHMMSS.json
         """
-        从分镜数据中提取三个输出
+        # 确定输出目录
+        if not output_path:
+            output_dir = Path(__file__).parent  # 使用插件目录
+        else:
+            output_dir = Path(output_path)  # 使用指定目录
+        
+        # 确保目录存在(递归创建)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # 生成带时间戳的文件名
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = "storyboard_" + timestamp + ".json"
+        filepath = output_dir / filename
+        
+        # 写入 JSON 文件
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        
+        print("分镜数据已保存到: " + str(filepath))
+
+    def _extract_outputs(self, storyboard_data, model):
+        """
+        从分镜数据中提取输出信息
         
         参数:
-            data: list - 分镜数据列表
+            storyboard_data: list/dict - 解析后的分镜数据
+            model: str - 使用的模型名称
         
         返回值:
-            Tuple[str, str, str] - (图像提示词, 视频提示词, 台词)
+            tuple - (图像提示词, 视频提示词, 台词)
+        
+        说明:
+            该方法支持多种数据格式:
+            1. 直接是镜头数组
+            2. 包含 scenes/shots/storyboard 等字段的字典
+            3. 单个镜头对象
+            每个镜头支持多种字段名(中英文兼容)
         """
-        image_prompts = []  # 静态图像提示词列表
-        video_prompts = []  # 动态视频提示词列表
-        dialogues = []      # 台词列表
+        # 初始化输出列表
+        all_image_prompts = []  # 静态分镜提示词列表
+        all_video_prompts = []  # 动态视频提示词列表
+        all_dialogues = []      # 台词列表
+        shot_items = []         # 镜头项目列表
 
-        # 调试信息:打印总镜头数
-        print(f"提取输出 - 总镜头数: {len(data)}")
-
-        # 遍历每个分镜
-        for i, item in enumerate(data):
-            shot_num = i + 1  # 镜头编号(从1开始)
+        # 内部函数: 处理单个镜头项，提取三个字段
+        def process_item(item):
+            """
+            从单个镜头项中提取数据
             
-            # 获取字段值,同时支持中英文字段名(兼容模型返回格式不一致的问题)
-            # 优先查找中文字段名,找不到再查找英文
-            static = item.get("静态", "") or item.get("static", "") or "[无内容]"
-            dynamic = item.get("动态", "") or item.get("dynamic", "") or "[无内容]"
-            dialogue = item.get("台词", "") or item.get("dialogue", "") or "无"
+            参数:
+                item: dict - 单个镜头的数据
             
-            # 调试信息:检查是否有空内容
-            if static == "[无内容]" or dynamic == "[无内容]":
-                print(f"警告: 镜头{shot_num} 内容为空,原始数据: {item}")
+            返回值:
+                tuple - (图像提示词, 视频提示词, 台词)
+            """
+            # 支持多种字段名（中英文兼容）
+            img = item.get("静态") or item.get("static") or item.get("image_prompts") or item.get("image_prompt") or item.get("images") or item.get("image") or ""
+            vid = item.get("动态") or item.get("dynamic") or item.get("video_prompts") or item.get("video_prompt") or item.get("videos") or item.get("video") or ""
+            dia = item.get("台词") or item.get("dialogues") or item.get("dialogue") or item.get("lines") or item.get("dialog") or ""
+            return str(img) if img else "", str(vid) if vid else "", str(dia) if dia else ""
 
-            # 添加到对应列表,格式为 "[镜头N] 内容"
-            image_prompts.append(f"[镜头{shot_num}] {static}")
-            video_prompts.append(f"[镜头{shot_num}] {dynamic}")
-            # 处理空台词的情况
-            dialogues.append(f"[镜头{shot_num}] {dialogue}" if dialogue != "无" else f"[镜头{shot_num}] ")
+        # 判断数据格式并提取镜头列表
+        if isinstance(storyboard_data, list):
+            # 情况1: 直接是镜头数组
+            shot_items = storyboard_data
+        elif isinstance(storyboard_data, dict):
+            # 情况2: 是包含镜头数组的字典
+            for array_key in ["scenes", "shots", "shot_list", "storyboard", "items"]:
+                if array_key in storyboard_data and isinstance(storyboard_data[array_key], list):
+                    shot_items = storyboard_data[array_key]
+                    break
 
-        # 调试信息:打印每个输出列表的长度
-        print(f"图像提示词数量: {len(image_prompts)}")
-        print(f"视频提示词数量: {len(video_prompts)}")
-        print(f"台词数量: {len(dialogues)}")
+            # 如果没找到镜头数组，尝试直接处理字典
+            if not shot_items:
+                img, vid, dia = process_item(storyboard_data)
+                if img: all_image_prompts.append(img)
+                if vid: all_video_prompts.append(vid)
+                if dia: all_dialogues.append(dia)
 
-        # 将列表转换为字符串(每个镜头占一行)
-        return ("\n".join(image_prompts), "\n".join(video_prompts), "\n".join(dialogues))
+        # 遍历镜头列表，提取数据并添加镜头号
+        for idx, item in enumerate(shot_items, 1):
+            if isinstance(item, dict):
+                img, vid, dia = process_item(item)
+                shot_label = "[镜头{}]".format(idx)  # 生成镜头号标签
+                if img:
+                    all_image_prompts.append(shot_label + " " + img)
+                if vid:
+                    all_video_prompts.append(shot_label + " " + vid)
+                if dia:
+                    all_dialogues.append(shot_label + " " + dia)
+
+        # 将列表合并为字符串，用空行分隔
+        image_result = "\n\n".join(all_image_prompts) if all_image_prompts else ""
+        video_result = "\n\n".join(all_video_prompts) if all_video_prompts else ""
+        dialogue_result = "\n\n".join(all_dialogues) if all_dialogues else ""
+
+        # 如果所有输出都为空，将原始数据作为后备输出
+        if not image_result and not video_result and not dialogue_result:
+            fallback = json.dumps(storyboard_data, ensure_ascii=False, indent=2)
+            image_result = fallback
+
+        # 输出处理完成日志
+        print("分镜数据提取完成，模型: {}, 共 {} 个镜头".format(model, len(shot_items) if shot_items else 1))
+
+        return (image_result, video_result, dialogue_result)
 
 
-# 节点映射(ComfyUI 需要的注册信息)
 NODE_CLASS_MAPPINGS = {
-    "StoryboardNode": StoryboardNode  # 节点类名 -> 节点类
+    "StoryboardNode": StoryboardNode
 }
 
-# 节点显示名称映射
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "StoryboardNode": "Storyboard Generator (DeepSeek)"  # 在 UI 中显示的名称
+    "StoryboardNode": "Storyboard Generator (DeepSeek)"
 }
